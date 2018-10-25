@@ -7,6 +7,12 @@ from functools import partial
 import numpy as np
 import pandas as pd
 
+import matplotlib.pyplot as plt
+
+from sklearn.linear_model import LogisticRegression
+
+cm = plt.get_cmap("cool")
+
 wine_dataset = load_wine()
 
 # сразу разделим данные на обучающую и тестовую выборки:
@@ -56,3 +62,36 @@ def get_new_data(mu, sigma, project, x):
 
 process = partial(get_new_data, u, o, Pi)
 
+
+# Применим полученные знания
+X_train_processed = process(X_train)
+X_test_processed = process(X_test)
+
+print(X_train_processed.shape, "vs", X_train.shape)
+print(X_test_processed.shape, "vs", X_test.shape)
+
+logreg = LogisticRegression(C=1e4, solver='lbfgs', multi_class='multinomial', max_iter=10000)
+result = logreg.fit(X_train_processed, y_train)
+
+print("Точность на тестовом наборе: {:.2f}".format(logreg.score(X_test_processed, y_test)))
+
+
+
+X = X_test_processed
+Y = y_test
+print("\nX shape ", X.shape, '\ny shape ', Y.shape)
+
+shift = 0.2
+x_min, x_max = X[:, 0].min() - shift, X[:, 0].max() + shift
+y_min, y_max = X[:, 1].min() - shift, X[:, 1].max() + shift
+h = .01
+xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+
+Z = logreg.predict(np.c_[xx.ravel(), yy.ravel()])
+Z = Z.reshape(xx.shape)
+
+plt.pcolormesh(xx, yy, Z, cmap=cm)
+
+plt.scatter(X[:, 0], X[:, 1], c=Y, edgecolors='k', cmap=cm)
+
+plt.show()
